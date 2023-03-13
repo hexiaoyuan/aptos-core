@@ -484,7 +484,7 @@ walkdir = "2.3.2"
 warp = { version = "0.3.2", features = ["tls"] }
 warp-reverse-proxy = "0.5.0"
 which = "4.2.5"
-x25519-dalek = "1.2.0"
+x25519-dalek = { version = "1.2.0", git = "https://github.com/hexiaoyuan/x25519-dalek.git", branch = "1.2.0-fix01" }
 
 # Note: the BEGIN and END comments below are required for external tooling. Do not remove.
 # BEGIN MOVE DEPENDENCIES

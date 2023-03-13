@@ -26,6 +26,9 @@ itertools = { workspace = true }
 once_cell = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
+tokio = { workspace = true }
+toml = { workspace = true }
+move-core-types = { workspace = true }
 
 [features]
 default = []
