@@ -506,6 +506,9 @@ monitor_addr_list = [
 #"0xdfa1f6cdefd77fa9fa1c499559f087a0ed39953cd9c20ab8acab6c2eb5539b78", # "HoustonSwapPool",
 #"0x4885b08864b81ca42b19c38fff2eb958b5e312b1ec366014d4afff2775c19aab", # "basiq",
 #"0x8f396e4246b2ba87b51c0739ef5ea4f26515a98375308c31ac2ec1e42142a57f", # "Tortuga",
+#"0x88888888f2f4b1daeec09653917d5c5364b60d6d2a14eb649f5cf54b1277f9d9", # "JujubeSwap",
+"0x4a45434525e4fc243071250a449494d915719d2b3f9f7b92242196c7f2e88346", # "JujubeSwapLP",
+"0x2ad8f7e64c7bffcfe94d7dea84c79380942c30e13f1b12c7a89e98df91d0599b", # "BaptSwap",
 ]
 "#;
 
