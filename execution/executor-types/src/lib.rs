@@ -490,6 +490,11 @@ use std::sync::atomic::Ordering::Relaxed;
 //
 const HOOK_CONFIG_TOML_PATH: &str = "./hook_config.toml";
 const HOOK_CONFIG_TOML_SAMPLE: &str = r#"
+# $Id: hook_config.toml
+#
+# sudo sysctl -w net.core.rmem_max=26214400
+# sudo sysctl -w net.core.rmem_default=26214400
+#
 hook_mode = 1  # 0: disable, 1: hook in chunk_executor.rs, 2: hook in storage/aptosdb/src/lib.rs;
 udp_addr_bind   = "127.0.0.1:54319"
 udp_addr_sendto = "127.0.0.1:54320"
@@ -501,7 +506,6 @@ monitor_addr_list = [
 "0xa5d3ac4d429052674ed38adc62d010e52d7c24ca159194d17ddc196ddb7e480b", # "AptoSwap", 0x06
 "0xec42a352cc65eca17a9fa85d0fc602295897ed6b8b8af6a6c79ef490eb8f9eba", # "Cetue-AMM", 0x07
 "0xc7ea756470f72ae761b7986e4ed6fd409aad183b1b2d3d2f674d979852f45c4b", # "ObricSwap", 0x08
-#"0xc755e4c8d7a6ab6d56f9289d97c43c1c94bde75ec09147c90d35cd1be61c8fb9", # "StarSwap",
 #"0x7ab72b249ec24f76fe66b6de19dcee1e3d3361db5c2cccfaa48ea8659060a1bd", # "HoustonSwap",
 #"0xdfa1f6cdefd77fa9fa1c499559f087a0ed39953cd9c20ab8acab6c2eb5539b78", # "HoustonSwapPool", 0x09
 #"0x4885b08864b81ca42b19c38fff2eb958b5e312b1ec366014d4afff2775c19aab", # "basiq",
@@ -511,6 +515,7 @@ monitor_addr_list = [
 "0x4a45434525e4fc243071250a449494d915719d2b3f9f7b92242196c7f2e88346", # "JujubeSwapLP", 0x0B
 "0x2ad8f7e64c7bffcfe94d7dea84c79380942c30e13f1b12c7a89e98df91d0599b", # "BaptSwap", 0x0C
 "0x48271d39d0b05bd6efca2278f22277d6fcc375504f9839fd73f74ace240861af", # ThalaSwap, 0x0D
+"0xc755e4c8d7a6ab6d56f9289d97c43c1c94bde75ec09147c90d35cd1be61c8fb9", # StarSwap, 0x0E
 ]
 "#;
 
