@@ -208,7 +208,7 @@ impl<NetworkClient: NetworkClientInterface<HealthCheckerMsg> + Unpin> HealthChec
                     }
 
                     for peer_id in connected {
-                        let nonce = self.rng.gen::<u32>();
+                        let nonce = if false { self.rng.gen::<u32>() } else { (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_micros() % 60_000_000) as u32 }; // pt01-patch-code
                         trace!(
                             NetworkSchema::new(&self.network_context),
                             round = self.round,
@@ -282,13 +282,28 @@ impl<NetworkClient: NetworkClientInterface<HealthCheckerMsg> + Unpin> HealthChec
         match ping_result {
             Ok(pong) => {
                 if pong.0 == req_nonce {
-                    trace!(
+                    // pt01-patch-code, RUST_LOG=warn,aptos_network=debug,aptos_data_client=debug
+                    let elapsed = {
+                        let now_nonce = (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_micros() % 60_000_000) as u32;
+                        if now_nonce > req_nonce {
+                            now_nonce - req_nonce
+                        } else {
+                            let now_nonce = now_nonce + 60_000_000;
+                            if now_nonce > req_nonce {
+                                now_nonce - req_nonce
+                            } else {
+                                60_000_000 // more than 60s
+                            }
+                        }
+                    };
+                    debug!(
                         NetworkSchema::new(&self.network_context).remote_peer(&peer_id),
                         rount = round,
-                        "{} Ping successful for peer: {} round: {}",
+                        "{} Ping successful for peer: {} round: {}, time_micros: {}",
                         self.network_context,
                         peer_id.short_str(),
-                        round
+                        round,
+                        elapsed
                     );
                     // Update last successful ping to current round.
                     // If it's not in storage, don't bother updating it

@@ -23,3 +23,25 @@ Aptos is a layer 1 blockchain bringing a paradigm shift to Web3 through better t
 You can learn more about contributing to the Aptos project by reading our [Contribution Guide](https://github.com/aptos-labs/aptos-core/blob/main/CONTRIBUTING.md) and by viewing our [Code of Conduct](https://github.com/aptos-labs/aptos-core/blob/main/CODE_OF_CONDUCT.md).
 
 Aptos Core is licensed under [Apache 2.0](https://github.com/aptos-labs/aptos-core/blob/main/LICENSE).
+
+## my coding and building
+
+```
+git clone git@github.com:hexiaoyuan/aptos-core.git
+git remote add upstream https://github.com/aptos-labs/aptos-core.git
+git fetch upstream
+git checkout -b aptos-release-v1.4-pt01 --track upstream/aptos-release-v1.4
+git push --set-upstream origin aptos-release-v1.4-pt01
+.... coding ....
+git commit
+.... .... .... ....
+git push
+#
+#
+git clone -b aptos-release-v1.4-pt01 --single-branch https://github.com/hexiaoyuan/aptos-core.git src
+cd src
+./scripts/dev_setup.sh
+source ~/.cargo/env
+cargo build --release -p aptos-node
+strip target/release/aptos-node
+```

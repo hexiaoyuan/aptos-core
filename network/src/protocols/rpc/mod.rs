@@ -223,7 +223,7 @@ impl InboundRpcs {
         let priority = request.priority;
         let req_len = request.raw_request.len() as u64;
 
-        trace!(
+        debug!( // pt01-patch-code, RUST_LOG=warn,aptos_network=debug,aptos_data_client=debug
             NetworkSchema::new(network_context).remote_peer(&self.remote_peer_id),
             "{} Received inbound rpc request from peer {} with request_id {} and protocol_id {}",
             network_context,
@@ -539,7 +539,7 @@ impl OutboundRpcs {
                 counters::rpc_bytes(network_context, RESPONSE_LABEL, RECEIVED_LABEL)
                     .inc_by(request_len);
 
-                trace!(
+                debug!( // pt01-patch-code, RUST_LOG=warn,aptos_network=debug,aptos_data_client=debug
                     NetworkSchema::new(network_context).remote_peer(peer_id),
                     "{} Received response for request_id {} from peer {} \
                      with {:.6} seconds of latency",
