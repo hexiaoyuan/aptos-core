@@ -35,7 +35,7 @@ pub use error::*;
 pub use execution_config::*;
 pub use identity_config::*;
 pub use indexer_config::*;
-pub use indexer_grpc_config::*;
+pub use indexer_grpc_config::IndexerGrpcConfig;
 pub use inspection_service_config::*;
 pub use logger_config::*;
 pub use mempool_config::*;
