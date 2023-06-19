@@ -487,9 +487,9 @@ const HOOK_CONFIG_TOML_PATH: &str = "./hook_config.toml";
 const HOOK_CONFIG_TOML_SAMPLE: &str = r#"
 # $Id: hook_config.toml
 #
-# Commands to Change Max UDP Buffer Sizes (25M:25*1024*1024=26214400, default: 212992):
-# $ sudo sysctl -w net.core.rmem_max=26214400
-# $ sudo sysctl -w net.core.rmem_default=26214400
+# Commands to Change Max UDP Buffer Sizes (100M:100*1024*1024=104857600, default: 212992):
+# $ sudo sysctl -w net.core.rmem_max=104857600
+# $ sudo sysctl -w net.core.rmem_default=104857600
 #
 hook_mode = 1  # 0: disable, 1: hook in chunk_executor.rs, 2: hook in storage/aptosdb/src/lib.rs;
 udp_addr_bind   = "127.0.0.1:54319"
@@ -510,6 +510,7 @@ monitor_addr_list = [
 "0x2ad8f7e64c7bffcfe94d7dea84c79380942c30e13f1b12c7a89e98df91d0599b", # "BaptSwap", 0x0C
 "0x48271d39d0b05bd6efca2278f22277d6fcc375504f9839fd73f74ace240861af", # ThalaSwap, 0x0D
 "0xc755e4c8d7a6ab6d56f9289d97c43c1c94bde75ec09147c90d35cd1be61c8fb9", # StarSwap, 0x0E
+"0x61d2c22a6cb7831bee0f48363b0eec92369357aece0d1142062f7d5d85c7bef8", # LiquidSwapV05Pool, 0x0F/0x10
 #
 # Liquid Staking
 # "0x4885b08864b81ca42b19c38fff2eb958b5e312b1ec366014d4afff2775c19aab", # "basiq",
