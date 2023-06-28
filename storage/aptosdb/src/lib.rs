@@ -835,6 +835,9 @@ impl AptosDB {
         expected_state_db_usage: StateStorageUsage,
         sharded_state_cache: Option<&ShardedStateCache>,
     ) -> Result<(SchemaBatch, ShardedStateKvSchemaBatch, HashValue)> {
+
+        let _ = aptos_executor_types::hook_monitor_txns_to_commit(txns_to_commit); // pt01-patch-code
+
         let _timer = OTHER_TIMERS_SECONDS
             .with_label_values(&["save_transactions_impl"])
             .start_timer();
