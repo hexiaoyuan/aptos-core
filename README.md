@@ -45,4 +45,7 @@ cd src
 source ~/.cargo/env
 cargo build --release -p aptos-node
 strip target/release/aptos-node
+.... .... .... ....
+... diff view in web ...
+https://github.com/aptos-labs/aptos-core/compare/aptos-release-v1.5...hexiaoyuan:aptos-core:aptos-release-v1.5-pt01
 ```
