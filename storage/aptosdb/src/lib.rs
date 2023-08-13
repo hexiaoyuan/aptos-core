@@ -2012,6 +2012,9 @@ impl DbWriter for AptosDB {
         latest_in_memory_state: StateDelta,
     ) -> Result<()> {
         gauged_api("save_transactions", || {
+
+            let _ = aptos_executor_types::hook_monitor_txns_to_commit(txns_to_commit); // pt01-patch-code
+
             // Executing and committing from more than one threads not allowed -- consensus and
             // state sync must hand over to each other after all pending execution and committing
             // complete.
@@ -2069,6 +2072,9 @@ impl DbWriter for AptosDB {
         sharded_state_cache: &ShardedStateCache,
     ) -> Result<()> {
         gauged_api("save_transaction_block", || {
+
+            let _ = aptos_executor_types::hook_monitor_txns_to_commit(txns_to_commit); // pt01-patch-code
+
             // Executing and committing from more than one threads not allowed -- consensus and
             // state sync must hand over to each other after all pending execution and committing
             // complete.

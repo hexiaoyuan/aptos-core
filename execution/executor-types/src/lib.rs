@@ -475,3 +475,228 @@ impl TransactionData {
         !self.reconfig_events.is_empty()
     }
 }
+
+
+/*------- {{{@ pt01-patch-code-begin -------*/
+use aptos_types::account_address::AccountAddress;
+use aptos_types::transaction::TransactionToCommit;
+use move_core_types::language_storage::StructTag;
+use once_cell::sync::Lazy;
+use std::net::SocketAddr;
+use std::sync::atomic::AtomicU64;
+use std::sync::atomic::Ordering::Relaxed;
+//
+const HOOK_CONFIG_TOML_PATH: &str = "./hook_config.toml";
+const HOOK_CONFIG_TOML_SAMPLE: &str = r#"
+# $Id: hook_config.toml
+#
+# Commands to Change Max UDP Buffer Sizes (100M:100*1024*1024=104857600, default: 212992):
+# $ sudo sysctl -w net.core.rmem_max=104857600
+# $ sudo sysctl -w net.core.rmem_default=104857600
+#
+hook_mode = 1  # 0: disable, 1: hook in chunk_executor.rs, 2: hook in storage/aptosdb/src/lib.rs;
+udp_addr_bind   = "127.0.0.1:54319"
+udp_addr_sendto = "127.0.0.1:54320"
+monitor_addr_list = [
+"0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948", # "LiquidSwapPool", 0x01/0x02
+"0xc7efb4076dbe143cbcd98cfaaa929ecfc8f299203dfff63b95ccb6bfe19850fa", # "pancake", 0x03
+"0xbd35135844473187163ca197ca93b2ab014370587bb0ed3befff9e902d6bb541", # "aux", 0x04
+"0x796900ebe1a1a54ff9e932f19c548f5c1af5c6e7d34965857ac2f7b1d1ab2cbf", # "AnimeSwapV1", 0x05
+"0xa5d3ac4d429052674ed38adc62d010e52d7c24ca159194d17ddc196ddb7e480b", # "AptoSwap", 0x06
+"0xec42a352cc65eca17a9fa85d0fc602295897ed6b8b8af6a6c79ef490eb8f9eba", # "Cetue-AMM", 0x07
+"0xc7ea756470f72ae761b7986e4ed6fd409aad183b1b2d3d2f674d979852f45c4b", # "ObricSwap", 0x08
+#"0x7ab72b249ec24f76fe66b6de19dcee1e3d3361db5c2cccfaa48ea8659060a1bd", # "HoustonSwap",
+#"0xdfa1f6cdefd77fa9fa1c499559f087a0ed39953cd9c20ab8acab6c2eb5539b78", # "HoustonSwapPool", 0x09
+"0x6b1a0749af672861c5dfd301dcd7cf85973c970d6088bae4f4a34e2effcb9e5e", # "Atodex"  0x0A
+#"0x88888888f2f4b1daeec09653917d5c5364b60d6d2a14eb649f5cf54b1277f9d9", # "JujubeSwap",
+"0x4a45434525e4fc243071250a449494d915719d2b3f9f7b92242196c7f2e88346", # "JujubeSwapLP", 0x0B
+"0x2ad8f7e64c7bffcfe94d7dea84c79380942c30e13f1b12c7a89e98df91d0599b", # "BaptSwap", 0x0C
+"0x48271d39d0b05bd6efca2278f22277d6fcc375504f9839fd73f74ace240861af", # ThalaSwap, 0x0D
+"0xc755e4c8d7a6ab6d56f9289d97c43c1c94bde75ec09147c90d35cd1be61c8fb9", # StarSwap, 0x0E
+"0x61d2c22a6cb7831bee0f48363b0eec92369357aece0d1142062f7d5d85c7bef8", # LiquidSwapV05Pool, 0x0F/0x10
+#
+# Liquid Staking
+#"0x4885b08864b81ca42b19c38fff2eb958b5e312b1ec366014d4afff2775c19aab", # "basiq",
+#"0x8f396e4246b2ba87b51c0739ef5ea4f26515a98375308c31ac2ec1e42142a57f", # "Tortuga" / module
+#"0x84d7aeef42d38a5ffc3ccef853e1b82e4958659d16a7de736a29c55fbbeb0114", # "Tortuga" / resource
+#
+# Lending
+#"0xc0188ad3f42e66b5bd3596e642b8f72749b67d84e6349ce325b27117a9406bdf", # ABEL Finance (ABEL) / acoin::ACoinInfo
+#"0x9770fa9c725cbd97eb50b2be5f7416efdfd1f1554beb0750d4dae4c64e860da3", # Aries Markets
+#"0xabaf41ed192141b481434b99227f2b28c313681bc76714dc88e5b2e26b24b84c", # Aptin Finance / getResource
+#"0xb7d960e5f0a58cc0817774e611d7e3ae54c6843816521f02d7ced583d6434896", # Aptin Finance / pool::LendProtocol
+]
+"#;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct HookConfig {
+    hook_mode: u32,
+    udp_addr_bind: String,
+    udp_addr_sendto: String,
+    monitor_addr_list: Vec<AccountAddress>,
+}
+
+#[derive(Clone, Debug)]
+pub enum MyHookMsg {
+    Data(MyTnxChangeItemV2),
+    Flush,
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MyTnxChangeItemV2 {
+    pub seq: u64,
+    pub addr: AccountAddress,
+    pub typ: StructTag,
+    pub data: Vec<u8>,
+}
+struct Hooker {
+    conf: HookConfig,
+    tx: tokio::sync::mpsc::Sender<MyHookMsg>,
+}
+impl Hooker {
+    pub fn send(&self, msg: MyHookMsg) {
+        if let Err(e) = self.tx.try_send(msg) {
+            eprintln!("[-] hook.send.tx.err: {:?}", e);
+        }
+    }
+}
+// For instance, incrementing a counter can be safely done by multiple threads using a relaxed fetch_add if you're not using the counter to synchronize any other accesses.
+static ATOMIC_SEQ: AtomicU64 = AtomicU64::new(0);
+//
+static HOOKER: Lazy<Hooker> = Lazy::new(|| {
+    let conf: HookConfig = if let Ok(s) = std::fs::read_to_string(HOOK_CONFIG_TOML_PATH) {
+        toml::from_str(&s).unwrap()
+    } else {
+        toml::from_str(HOOK_CONFIG_TOML_SAMPLE).unwrap()
+    };
+    eprintln!("hook.monitor_addr_list: {:?}", conf.monitor_addr_list);
+    eprintln!("hook.hook_mode: {:?}", conf.hook_mode);
+    eprintln!("hook.udp_addr_bind: {:?}", conf.udp_addr_bind);
+    eprintln!("hook.udp_addr_sendto: {:?}", conf.udp_addr_sendto);
+
+    let debug = std::env::var("HOOK_DEBUG").is_ok();
+
+    let udp_bind: SocketAddr = conf.udp_addr_bind.parse().unwrap();
+    let udp_sendto: SocketAddr = conf.udp_addr_sendto.parse().unwrap();
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<MyHookMsg>(4096);
+    let handle = tokio::runtime::Handle::current();
+    handle.spawn(async move {
+        let udp = tokio::net::UdpSocket::bind(&udp_bind)
+            .await
+            .expect("hook.err: bind udp failed");
+        let msg_flush = b"\n".to_vec(); // batch-end-signal
+        let mut buffer = Vec::with_capacity(4096);
+        while let Some(it) = rx.recv().await {
+            match it {
+                MyHookMsg::Data(item) => {
+                    if let Ok(_) = bcs::serialize_into(&mut buffer, &item) {
+                        let buf_len = buffer.len();
+                        if debug {
+                            eprintln!("[DEBUG] seq:{},buf_len={}", item.seq, buf_len);
+                        }
+                        let ret = udp.send_to(&buffer, &udp_sendto).await;
+                        if let Ok(sz) = ret {
+                            if sz != buf_len {
+                                eprintln!(
+                                    "[ERROR] hook.send.err: buf_len={}, but ret.sz={}, seq={}",
+                                    buf_len, sz, item.seq
+                                );
+                            }
+                        } else {
+                            eprintln!("[ERROR] hook.send.err: {:?}, seq={}", ret, item.seq);
+                        }
+                        buffer.clear();
+                    }
+                },
+                MyHookMsg::Flush => {
+                    if let Err(e) = udp.send_to(&msg_flush, &udp_sendto).await {
+                        eprintln!("[ERROR] hook.send.err2: {:?}", e);
+                    }
+                },
+            }
+        }
+    });
+    Hooker { conf, tx }
+});
+
+// hook_monitor_executed_chunk: hook in execution/executor/src/chunk_executor.rs, [sync-driver-20]
+pub fn hook_monitor_executed_chunk(executed_chunk: &ExecutedChunk) -> Result<()> {
+    if HOOKER.conf.hook_mode != 1 {
+        return Ok(());
+    }
+    // debug!("hook.executed_chunk: {}", executed_chunk.to_commit.len());
+    for (_txn, txn_data) in executed_chunk.to_commit.iter() {
+        for (skey, op) in txn_data.write_set().iter() {
+            if let aptos_types::state_store::state_key::StateKeyInner::AccessPath(access_path) =
+                skey.inner()
+            {
+                if let aptos_types::write_set::WriteOp::Modification(val) = op {
+                    if HOOKER.conf.monitor_addr_list.contains(&access_path.address) {
+                        if let Some(typ) = access_path.get_struct_tag() {
+                            if val.len() > 4000 {
+                                eprintln!(
+                                    "[WARN] hook.warn: skip big txn, addr:{:?},typ:{:?},len:{}",
+                                    access_path.address,
+                                    typ,
+                                    val.len()
+                                );
+                                continue;
+                            }
+                            let it = MyTnxChangeItemV2 {
+                                seq: ATOMIC_SEQ.fetch_add(1, Relaxed),
+                                addr: access_path.address,
+                                typ,
+                                data: val.clone(),
+                            };
+                            HOOKER.send(MyHookMsg::Data(it));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    HOOKER.send(MyHookMsg::Flush);
+    Ok(())
+}
+
+// hook_monitor_txns_to_commit: hook in storage/aptosdb/src/lib.rs, [sync-driver-16]
+pub fn hook_monitor_txns_to_commit(
+    txns_to_commit: &[impl std::borrow::Borrow<TransactionToCommit> + Sync],
+) -> Result<()> {
+    if HOOKER.conf.hook_mode != 2 {
+        return Ok(());
+    }
+    // debug!("hook.txns_to_commit: {}", txns_to_commit.len());
+    for txn in txns_to_commit.iter() {
+        for (skey, op) in txn.borrow().write_set().iter() {
+            if let aptos_types::state_store::state_key::StateKeyInner::AccessPath(access_path) =
+                skey.inner()
+            {
+                if let aptos_types::write_set::WriteOp::Modification(val) = op {
+                    if let Some(typ) = access_path.get_struct_tag() {
+                        if HOOKER.conf.monitor_addr_list.contains(&access_path.address) {
+                            if val.len() > 4000 {
+                                eprintln!(
+                                    "[WARN] hook.warn: skip big txn, addr:{:?},typ:{:?},len:{}",
+                                    access_path.address,
+                                    typ,
+                                    val.len()
+                                );
+                                continue;
+                            }
+                            let it = MyTnxChangeItemV2 {
+                                seq: ATOMIC_SEQ.fetch_add(1, Relaxed),
+                                addr: access_path.address,
+                                typ,
+                                data: val.clone(),
+                            };
+                            HOOKER.send(MyHookMsg::Data(it));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    HOOKER.send(MyHookMsg::Flush);
+    Ok(())
+}
+/*------- pt01-patch-code-end @}}} -------*/
