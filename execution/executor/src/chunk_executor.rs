@@ -150,6 +150,8 @@ impl<V: VMExecutor> ChunkExecutorInner<V> {
             .maybe_select_chunk_ending_ledger_info(verified_target_li, epoch_change_li)?;
         executed_chunk.ensure_transaction_infos_match(transaction_infos)?;
 
+        let _ = aptos_executor_types::hook_monitor_executed_chunk(&executed_chunk); // pt01-patch-code
+
         Ok(executed_chunk)
     }
 
@@ -214,8 +216,6 @@ impl<V: VMExecutor> ChunkExecutorInner<V> {
             &txn_info_list_with_proof.transaction_infos[txns_to_skip..],
         )?;
 
-        let _ = aptos_executor_types::hook_monitor_executed_chunk(&executed_chunk); // pt01-patch-code
-
         // Add result to commit queue.
         self.commit_queue.lock().enqueue(executed_chunk);
 
@@ -265,8 +265,6 @@ impl<V: VMExecutor> ChunkExecutorInner<V> {
             chunk_output,
             &txn_output_list_with_proof.proof.transaction_infos[txns_to_skip..],
         )?;
-
-        let _ = aptos_executor_types::hook_monitor_executed_chunk(&executed_chunk); // pt01-patch-code
 
         // Add result to commit queue.
         self.commit_queue.lock().enqueue(executed_chunk);
