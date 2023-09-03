@@ -700,6 +700,7 @@ dependencies = [
  "fail 0.5.1",
  "futures",
  "futures-channel",
+ "hex",
  "itertools",
  "maplit",
  "mirai-annotations",
