@@ -13,7 +13,7 @@ xclippy = [
 ]
 
 [build]
-target-dir = "/x/cargo_target_dir/aptos-core"
+#target-dir = "/x/cargo_target_dir/aptos-core"
 rustflags = ["--cfg", "tokio_unstable", "-C", "force-frame-pointers=yes", "-C", "force-unwind-tables=yes"]
 
 # TODO(grao): Figure out whether we should enable other cpu features, and whether we should use a different way to configure them rather than list every single one here.
